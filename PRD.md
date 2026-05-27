@@ -1,9 +1,13 @@
-# WSM — Учёт отгрузок овощного сырья. PRD v1.0
+# WSM — Учёт отгрузок овощного сырья. PRD v1.1.1
 
 > Источник дизайна: `./reference/` (полный бандл claude.ai/design). Чаты пользователь↔дизайн-ассистент в `reference/chats/`. Эталонные jsx-прототипы — `reference/project/`.
 > Документ — спецификация Phase 1 (Core). Содержит полный домен, чтобы будущие фазы наследовали единые сущности и enum'ы.
 >
-> **Версия 1.0**. Approved для старта реализации Phase 1.
+> **Версия 1.1.1**. Approved для старта реализации Phase 1.
+>
+> **v1.1.1 hotfix**: счётчик овощей 13→14 в трёх местах текста.
+>
+> **Версия 1.1 изменения относительно v1.0**: реструктуризация модели тары (D-1…D-7) и пересмотр списка основных RawMaterial (баклажан исключён, перец расщеплён на 3 типа, итого 8 основных). Подробности в §1.1, §2, §4.1.4, §4.3.1, §4.5.3, §5.2 (новые типы TaraType/TaraEntry/TaraLoadNorm/TaraShipment), §5.3 (I15-I18), §6.12 (новое правило автогенерации), §10.2, Приложение B (F9-F11).
 
 ---
 
@@ -11,7 +15,9 @@
 
 ### 1.1 Продукт
 
-**WSM (Warehouse / Supplier / Weighbridge Management System)** — учёт отгрузок овощного сырья (огурцы, томаты, черри, перец, баклажан, патиссоны, халапеньо + сезонные кабачки/тыква/морковь/свёкла/лук/капуста) с фермерских хозяйств на перерабатывающий завод.
+**WSM (Warehouse / Supplier / Weighbridge Management System)** — учёт отгрузок овощного сырья с фермерских хозяйств на перерабатывающий завод. Основные культуры (8): огурцы, томаты, черри, патиссоны, халапеньо, перец острый, перец сладкий, перец сладкий маринованный. Сезонные (6): кабачки, тыква, морковь, свёкла, лук, капуста.
+
+> ⚠ Перец сладкий маринованный приходит на завод уже маринованным от фермера (не процесс на заводе) — полноценный отдельный raw, не подкатегория.
 
 ### 1.2 Бизнес-задача
 
@@ -31,6 +37,7 @@
 ### 1.4 Скоуп MVP (Phase 1 — Core)
 
 - **Главная страница** с тремя режимами просмотра отгрузок: **Таблица / Heatmap / План**.
+
 - **Левый sidebar** с навигацией, сворачиваемый, с переключателем роли.
 - **Role toggle** (мок Admin ↔ User) — без реальной авторизации.
 - **Справочник «Водители»** (просмотр для User, CRUD для Admin) с полной DriverEditModal.
@@ -69,17 +76,20 @@
 | Фермер / Поставщик         | `Supplier`              | Сельхозпроизводитель, от которого приходит сырьё. Привязан к контрактам. Иногда называется «поставщик», иногда «фермер» — синонимы в этом домене.                                                                                                                            |
 | Транспортная компания (ТК) | `TransportCompany`      | Перевозчик. Привязан к водителю (1 водитель — 1 ТК в мок-данных).                                                                                                                                                                                                            |
 | Водитель                   | `Driver`                | Физлицо, управляющее машиной. Имеет ФИО, телефон, ссылку на ТК, информационное поле.                                                                                                                                                                                         |
-| Сырьё / Овощ               | `RawMaterial`           | Тип овоща. Делятся на **основные** (7 шт., есть всегда: огурцы, черри, томаты, перец, баклажан, патиссоны, халапеньо) и **сезонные** (6 шт.: кабачки, тыква, морковь, свёкла, лук, капуста). У сырья есть цвет (bg + dot), флаг `seasonal`, опциональные параметры качества. |
+| Сырьё / Овощ               | `RawMaterial`           | Тип овоща. Делятся на **основные** (8 шт., есть всегда: огурцы, томаты, черри, патиссоны, халапеньо, перец острый, перец сладкий, перец сладкий маринованный) и **сезонные** (6 шт.: кабачки, тыква, морковь, свёкла, лук, капуста). У сырья есть цвет (bg + dot), флаг `seasonal`, список допустимых TaraType (`allowedTara`), опциональные параметры качества.                                                                                                                                                                                                                                                                                                                          |
 | План недели                | `WeekPlan`              | Тонны сырья по дням недели (ПН–СБ) на одну неделю. Структура: `Record<RawId, [d0,d1,d2,d3,d4,d5]>`.                                                                                                                                                                          |
 | Факт                       | —                       | Сумма веса (кг) по всем `ShipmentItem` за день/неделю по конкретному сырью. **Считаются все 3 статуса**: scheduled + sent + arrived.                                                                                                                                         |
 | Режим: Таблица             | `view='table'`          | Аккордеон отгрузок, сгруппированных по неделе и дню прибытия.                                                                                                                                                                                                                |
 | Режим: Heatmap             | `view='heatmap'`        | Сводная сетка сырьё × дни недели. Цвет ячейки = сырьё, насыщенность = объём.                                                                                                                                                                                                 |
-| Режим: План                | `view='plan'`           | Недельная сетка 7 основных овощей × 6 дней с inline-редактированием плана + автовычисляемый факт + прогресс-бар. Пустая ячейка визуально «План» — но это UI-концепт, не сохраняемая сущность.                                                                                |
+| Режим: План                | `view='plan'`           | Недельная сетка 8 основных овощей × 6 дней с inline-редактированием плана + автовычисляемый факт + прогресс-бар. Пустая ячейка визуально «План» — но это UI-концепт, не сохраняемая сущность.                                                                                |
 | Архивная неделя            | `WeekPlan.archive=true` | Прошлые недели. Read-only, редактирование плана и отгрузок запрещено. `archive` — флаг в сидах, не вычисляется от текущей даты.                                                                                                                                              |
 | Статус отгрузки            | `Status`                | См. §6.1. Три значения: `scheduled`, `sent`, `arrived`.                                                                                                                                                                                                                      |
 | Роль                       | `Role`                  | `admin` или `user`.                                                                                                                                                                                                                                                          |
 | Акт приёмки                | `QualityRecord`         | Документ качества для позиции отгрузки (номер акта, PDF, данные брака/нестандарта). Phase 2.                                                                                                                                                                                 |
-| Тара                       | `Tara`                  | Возвратная упаковка (ящики, бочки). Phase 2.                                                                                                                                                                                                                                 |
+| Тип тары                   | `TaraType`              | Справочник видов тары (Phase 2 seed: ящик овощной, бочка пластиковая 250 л, бочка железная 200 л). Phase 2.                                                                                                                                                                  |
+| Тара (позиция)             | `TaraEntry`             | `{taraTypeId, count}` внутри `ShipmentItem`. В Phase 1 всегда пустой массив. В Phase 2 — автогенерация по нормативу (§6.12).                                                                                                                                                |
+| Норматив загрузки          | `TaraLoadNorm`          | `(supplierId × rawId × taraTypeId) → fullTruckKg + fullTruckCount`. Phase 2.                                                                                                                                                                                                |
+| Тарная отправка            | `TaraShipment`          | Машина с пустой тарой завод→фермер или фермер→фермер (форма 6.2 reference). Phase 2.                                                                                                                                                                                       |
 | Ингредиент                 | `Ingredient`            | Технологические добавки (соль, уксус и т.д.). Phase 2.                                                                                                                                                                                                                       |
 | Контракт                   | `Contract`              | Соглашение завод↔фермер на сезон с N позициями (сырьё, даты, тонны, цена). Phase 2.                                                                                                                                                                                          |
 | Сезон                      | `Season`                | Период (например, «2025/2026»). Phase 2.                                                                                                                                                                                                                                     |
@@ -189,7 +199,7 @@ _Источник: `reference/project/Wireframes.html` L547–960 (VariantA), L2
 - Название сырья.
 - Вес: `{kg} кг` (моноширинный шрифт, JetBrains Mono).
 - Поставщик: ФИО/название.
-- Опц. тара: «бочка × 6» или «—».
+- Тара: отображение `tara[]` в формате «ящик × 583» или «бочка пластик. × 12, бочка металл. × 5». Если `tara=[]` (Phase 1 всегда; Phase 2 для сырья «без тары») — отображается «—». Read-only во всех сценариях.
 - Опц. иконка качества (QualityBadge) — в Phase 1 показываем только визуально, без клика.
 
 #### 4.1.5 Действия (top of page)
@@ -233,7 +243,7 @@ _Источник: `reference/project/pivot-summary.jsx` L110–209 (PivotV2)._
 
 #### 4.3.1 Структура
 
-- Таблица: **7 основных овощей × 6 дней** (ПН–СБ). Сезонные показываются только если есть план > 0 или есть отгрузки.
+- Таблица: **8 основных овощей × 6 дней** (ПН–СБ). Сезонные показываются только если есть план > 0 или есть отгрузки.
 - Ячейка содержит:
   - Числовой input (план в тоннах, integer, без десятых). Right-aligned.
   - Под input'ом: компьютед факт (тонны) и пилл состояния (см. §6.3).
@@ -255,7 +265,7 @@ _Источник: `reference/project/pivot-summary.jsx` L110–209 (PivotV2)._
 #### 4.3.3 Видимость овощей (gear popover)
 
 - Иконка ⚙ справа над таблицей.
-- Клик → popover со списком всех 13 овощей + чекбоксы.
+- Клик → popover со списком всех 14 овощей + чекбоксы.
 - Хранение: `localStorage[wsm:v1:planVis:W{weekNum}_{year}]` = `string[]` (массив hidden raw ID).
 - **Защита от скрытия (invariant)**: овощ нельзя скрыть, если на нём:
   - есть план > 0 в данной неделе, ИЛИ
@@ -361,8 +371,9 @@ _Источник: `reference/project/Wireframes.html` L1346–1488 (VariantE), 
 | Сырьё | `select` | ✓ | пусто (или префилл в plan-mode, locked) | выбор из `RawRepo.list()`, color-coded |
 | Вес, кг | `number` | ✓ | пусто | > 0; integer; right-aligned |
 | Поставщик | `select` | ✓ | пусто | выбор из `SupplierRepo.list()` (read-only справочник в Phase 1) |
-| Тара | text (свободный ввод) | — | пусто (отображается «—») | макс 50 симв; **display-only, парсинг не делаем** |
 | ✕ | action | — | — | disabled если items.length === 1 |
+
+**Поле тары в Form E не редактируется.** В Phase 1 значение тары (`ShipmentItem.tara`) — всегда пустой массив `[]`. В Phase 2 — автогенерация по нормативу (см. §6.12). Информационное read-only отображение тары присутствует в строке позиции (см. §4.1.4 ItemLine).
 
 **Добавление позиции**: кнопка «+ Добавить позицию (ещё сырьё / ещё поставщик)» внизу таблицы → push в массив.
 
@@ -529,10 +540,14 @@ export interface Supplier {
 export interface RawMaterial {
   id: string; // 'raw_cucumbers', 'raw_cherry', ...
   name: string; // "Огурцы", "Черри", ...
-  seasonal: boolean; // false для 7 основных, true для 6 сезонных
+  seasonal: boolean; // false для 8 основных, true для 6 сезонных
   unit: 'kg' | 'ton' | 'pcs' | 'box'; // default 'kg'
   bg: string; // CSS-цвет фона, "#d4eac2"
   dot: string; // CSS-цвет точки/dot, "#4a8f2a" или linear-gradient(...)
+  // Список допустимых TaraType.id для этого сырья.
+  // [] = «без тары». Один = жёсткая привязка. Два+ = выбор в Phase 2 Form E.
+  // Конфигурируется в seed раз и навсегда.
+  allowedTara: string[];
   // Phase 2: qualityParams: QualityParam[]
 }
 
@@ -541,7 +556,10 @@ export interface ShipmentItem {
   rawId: string; // FK → RawMaterial
   kg: number; // > 0
   supplierId: string; // FK → Supplier
-  tara: string; // freeform, default ''; max 50 chars; display-only
+  // Структурированная тара. В Phase 1 всегда пустой массив [].
+  // В Phase 2 заполняется автогенерацией по TaraLoadNorm (§6.12).
+  // Read-only в UI всегда.
+  tara: TaraEntry[];
   // Phase 2: qualityRecordId, actNumber, processed
 }
 
@@ -573,6 +591,58 @@ export interface User {
   role: Role;
   // Phase 3: id, email, fio, ...
 }
+
+// ============= Phase 2: Tara domain (зарезервировано) =============
+// Типы определены сейчас, чтобы Phase 1 model/seed не требовали миграции в Phase 2.
+
+export interface TaraType {
+  id: string; // 'tara_veg_box', 'tara_plastic_drum', 'tara_metal_drum'
+  name: string; // "Бочка пластиковая 250 л"
+  shortName: string; // "Бочка пластик."
+  volumeL: number | null; // 250, 200, null для ящика
+  color: string; // CSS-цвет для UI чипов
+}
+
+export interface TaraEntry {
+  taraTypeId: string; // FK → TaraType
+  count: number; // integer > 0
+}
+
+// Норматив загрузки: сколько единиц тары вмещает полная машина
+// для данной комбинации (поставщик × сырьё × тип тары).
+// Уникальный ключ — (supplierId, rawId, taraTypeId).
+// Используется в Phase 2 для автогенерации tara[] при создании ShipmentItem.
+export interface TaraLoadNorm {
+  id: string;
+  supplierId: string;
+  rawId: string;
+  taraTypeId: string;
+  fullTruckKg: number; // средний вес полной машины этого сырья от этого фермера, кг
+  fullTruckCount: number; // сколько единиц тары при fullTruckKg
+  // Формула расчёта: taraCount = Math.round(kg / fullTruckKg * fullTruckCount)
+}
+
+// Тарная отправка завод → фермер (см. форма 6.2 в reference).
+// В Phase 1 НЕ создаётся, зарезервировано в типах.
+export interface TaraShipment {
+  id: string;
+  shipDate: string;
+  driverId: string;
+  tkId: string;
+  status: TaraStatus;
+  items: TaraShipmentItem[]; // мин 1
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaraShipmentItem {
+  id: string;
+  supplierId: string; // получатель
+  taraTypeId: string;
+  count: number;
+}
+
+export type TaraStatus = 'in_transit' | 'delivered' | 'overdue';
 ```
 
 ### 5.3 Инварианты
@@ -593,6 +663,10 @@ export interface User {
 | I12 | `Status` transitions | разрешённые переходы: `scheduled → sent → arrived` (только вперёд). Прямой переход `scheduled → arrived` запрещён (нужно сначала sent). Прямой переход `scheduled → sent → arrived` возможен последовательно. **Обратные переходы — запрещены в Phase 1.** |
 | I13 | `Driver.phone`       | matches regex `^\+7\d{10}$` (E.164 RU)                                                                                                                                                                                                                     |
 | I14 | `Driver.fio`         | min 2 chars                                                                                                                                                                                                                                                |
+| I15 | `ShipmentItem`       | `tara` всегда массив (включая пустой). Никаких null/undefined. В Phase 1 = `[]`.                                                                                                                                                                            |
+| I16 | `RawMaterial`        | `allowedTara` — массив существующих `TaraType.id`. Пустой = «без тары».                                                                                                                                                                                     |
+| I17 | `TaraEntry` (Phase 2) | `count > 0`, целое. `taraTypeId` должен быть в `raw.allowedTara` соответствующего `ShipmentItem.rawId`.                                                                                                                                                    |
+| I18 | `TaraLoadNorm` (Phase 2) | Уникальность по `(supplierId, rawId, taraTypeId)`. `fullTruckKg > 0`, `fullTruckCount > 0`. `taraTypeId` должен быть в `raw.allowedTara`.                                                                                                                |
 
 ---
 
@@ -685,6 +759,25 @@ _Источник: комментарий в `reference/project/pivot-summary.js
 В `validateDriver` обязательная проверка `^\+7\d{10}$` на сохранённом значении.
 
 В `DriverModal`: кнопка copy копирует `formatPhoneRu(phone)` (форматированную строку).
+
+### 6.12 Автогенерация тары при отгрузке сырья (Phase 2)
+
+При создании или редактировании `ShipmentItem` в Phase 2 система автоматически рассчитывает `tara: TaraEntry[]`:
+
+1. Если `raw.allowedTara === []` → `tara = []` (без тары; огурцы, перец острый, перец сладкий).
+2. Иначе ищется набор `TaraLoadNorm` по `(supplierId, rawId)`.
+   - 0 норм → ошибка валидации «Не настроен норматив тары для фермера X и сырья Y».
+   - 1 норма → `taraTypeId` берётся из неё автоматически.
+   - ≥2 норм → Form E показывает select типа тары (значения = `allowedTara`); пользователь выбирает; в норме ищется выбранный `taraTypeId`.
+3. Расчёт количества: `count = Math.round(kg / norm.fullTruckKg * norm.fullTruckCount)`.
+4. Результат: `tara = [{ taraTypeId, count }]`.
+5. Пользователь может скорректировать `count` вручную (например, при неполной загрузке). Тип тары не корректируется.
+
+**Пример 1** (Цой, черри, ящики): норматив `fullTruckKg=18000`, `fullTruckCount=1050`. Отгрузка 10000 кг → `count = round(10000/18000 * 1050) = 583` ящика. `tara = [{ taraTypeId: 'tara_veg_box', count: 583 }]`.
+
+**Пример 2** (Мищенко, патиссоны, железо): норматив `fullTruckKg=12000`, `fullTruckCount=60`. Отгрузка 8000 кг → `count = round(8000/12000 * 60) = 40` железных бочек. `tara = [{ taraTypeId: 'tara_metal_drum', count: 40 }]`.
+
+**В Phase 1 это правило не реализуется.** `ShipmentItem.tara` всегда `[]`. Типы и инфраструктура подготовлены.
 
 ---
 
@@ -946,7 +1039,7 @@ export const RoleGate: FC<Props> = ({ allow, fallback = null, children }) => {
       drivers.seed.ts             ~6 drivers (телефоны в E.164)
       tks.seed.ts                 ~3 TKs
       suppliers.seed.ts           ~7 suppliers
-      raws.seed.ts                7 main + 6 seasonal (все 13)
+      raws.seed.ts                8 main + 6 seasonal (все 14); allowedTara проставлен у каждого
       shipments.seed.ts           ~30 shipments × 3 weeks
       plans.seed.ts               3 WeekPlans (W16 archive, W17 current, W18 next; year 2025)
     components/
@@ -1075,6 +1168,15 @@ export const RoleGate: FC<Props> = ({ allow, fallback = null, children }) => {
 | Фильтр по поставщику / ТК в TableView                       | 2    | UX                                     |
 | Component-тесты (RTL)                                       | 2+   | Coverage                               |
 | Глубокий a11y audit                                         | 2+   | Compliance                             |
+| Справочник «Виды тары» (`TaraType` CRUD)                    | 2    | Раздел из sidebar                      |
+| Норматив загрузки (`TaraLoadNorm`): supplier × raw × taraType → fullTruckKg + fullTruckCount | 2    | Без него невозможна автогенерация      |
+| Автогенерация `ShipmentItem.tara` при создании Shipment (см. §6.12) | 2    | Ключевая бизнес-механика               |
+| UI выбора типа тары в Form E для сырья с ≥2 `allowedTara`   | 2    | Патиссоны: пластик/железо              |
+| Тарные отправки `TaraShipment` (форма 6.2 из reference) завод → фермер | 2    | Логистика материалов                   |
+| Тарные перемещения фермер → фермер                          | 2    | Подвид `TaraShipment`                  |
+| Остатки тары у фермеров (балансы)                           | 2    | Производное от `TaraShipment` + `ShipmentItem.tara` |
+| Учёт лома и списания тары                                   | 2    | Раздел «Логистика материалов»          |
+| Журнал движений тары (audit-trail)                          | 2    | Раздел «Логистика материалов»          |
 
 ---
 
@@ -1131,14 +1233,14 @@ export const RoleGate: FC<Props> = ({ allow, fallback = null, children }) => {
 
 ### 11.6 Plan view
 
-- [ ] Сетка 7 основных овощей × 6 дней для текущей недели (W17 из seed).
+- [ ] Сетка 8 основных овощей × 6 дней для текущей недели (W17 из seed).
 - [ ] Все 6 цветовых состояний ячеек видны на seed-данных: `empty`, `emptyOver`, `short`, `close`, `norm`, `over`.
 - [ ] Маркер 100% виден на каждом ProgressBar.
 - [ ] Штриховка над 100% видна для overcommit-ячейки.
 - [ ] Редактирование плана (Admin): ввод числа → `onBlur` → сохранение → re-render с новым % и цветом.
 - [ ] Рефреш страницы → новое значение плана сохранилось (LS persistent).
 - [ ] У User input'ы плана readonly.
-- [ ] Открытие gear (Admin) → попап со списком 13 овощей.
+- [ ] Открытие gear (Admin) → попап со списком 14 овощей.
 - [ ] У User gear скрыт.
 - [ ] Снять чекбокс с «Кабачки» (не защищены сидом) → строка пропала; рефреш → пропала.
 - [ ] Попытка снять чекбокс с «Огурцы» (защищены планом+отгрузками) → чекбокс не реагирует, появляется tooltip.
@@ -1165,6 +1267,9 @@ export const RoleGate: FC<Props> = ({ allow, fallback = null, children }) => {
 - [ ] Edit mode статус `sent`: доступны «Сохранить» (без смены статуса), «Отметить прибывшим», «Удалить» (admin).
 - [ ] Edit mode статус `arrived`: «Сохранить» влияет только на комментарий; «Удалить» доступно admin.
 - [ ] Обратный переход (например `sent` → `scheduled`) недоступен ни через одну кнопку.
+- [ ] Поле «Тара» в Form E отсутствует как редактируемый input.
+- [ ] В строке позиции отображается «Тара: —» для всех позиций (Phase 1).
+- [ ] В LocalStorage `wsm:v1:shipments` поле `items[].tara` присутствует и равно `[]` для всех записей.
 
 ### 11.8 DriversRef и Phone handling
 
@@ -1234,12 +1339,15 @@ export const RoleGate: FC<Props> = ({ allow, fallback = null, children }) => {
 | #   | Правило                                                                 | Источник                                       |
 | --- | ----------------------------------------------------------------------- | ---------------------------------------------- |
 | F1  | Цветовая логика ячейки плана 80/100/120 (6 состояний)                   | `plan-view.jsx` L166–192                       |
-| F2  | Палитра 13 сырья (RAW_COLORS)                                           | `Wireframes.html` L182–197                     |
+| F2  | Палитра 14 сырья (RAW_COLORS)                                           | `Wireframes.html` L182–197                     |
 | F3  | Статус-чипы (3 цвета в Phase 1, иконки)                                 | `Wireframes.html` L200–211                     |
 | F4  | Heatmap считает все 3 статуса как факт                                  | `pivot-summary.jsx` L4–6, `plan-view.jsx` L4–7 |
 | F5  | Одна машина = одна Shipment с N ShipmentItem                            | `Wireframes.html` L1484                        |
 | F6  | Шкала ProgressBar 0–150% с маркером 100%                                | `plan-view.jsx` L199–280                       |
 | F7  | Phone хранение E.164, отображение `+7 (xxx) xxx-xx-xx`                  | этот PRD §6.11                                 |
 | F8  | Status enum 3 значения (scheduled/sent/arrived), без обратных переходов | этот PRD §6.1, I12                             |
+| F9  | Тара структурируется как `TaraEntry[]`, Phase 1 = `[]`, Phase 2 = автогенерация по `TaraLoadNorm`. UI всегда read-only. | этот PRD §4.1.4, §5.2, §6.12                   |
+| F10 | Список основных `RawMaterial` — 8 шт. (см. §1.1, `raws.seed.ts`). Перец = 3 отдельных raw'а (острый, сладкий, маринованный). Баклажан исключён. | этот PRD §1.1, §5.2                            |
+| F11 | `RawMaterial.allowedTara` — свойство сырья, не отдельная связь. Конфигурируется в seed раз и навсегда. | этот PRD §5.2, I16                             |
 
-— конец PRD v1.0 —
+— конец PRD v1.1 —
