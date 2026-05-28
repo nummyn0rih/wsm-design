@@ -48,7 +48,7 @@ Seed: scenario-based; no Sunday arrDate.
 Weekly plan ≠ contract plan.
 ```
 
-История прошлых версий — `docs/legacy/PRD-v1.2.md` и git log.
+История прошлых версий — [`legacy/PRD-v1.2.md`](legacy/PRD-v1.2.md) и git log.
 
 ---
 
@@ -173,9 +173,9 @@ interface ShipmentsPageState {
 
 Правила:
 - При отсутствии query-params: `view=table`, `weekNum=currentISOWeek`, `year=currentYear`.
-- При переключении view (Table → Heatmap → Plan): `week` и `year` **сохраняются**. Если пользователь в Plan W18 переключается в Heatmap — Heatmap открывается на W18.
+- При переключении view (Table → Heatmap → Plan): `week` и `year` **сохраняются**. Если пользователь на неделе X переключается в Heatmap — Heatmap открывается на той же неделе X.
 - При навигации между неделями — URL обновляется через `replaceState`.
-- `currentWeek` = ISO-неделя сегодняшнего дня.
+- `currentWeek` = ISO-неделя сегодняшнего дня, вычисляется через `currentWeekId()` (см. [`IMPLEMENTATION.md`](IMPLEMENTATION.md)).
 
 ### 3.1 Режим «Таблица»
 
@@ -275,7 +275,9 @@ _Источник: `reference/project/plan-view.jsx` L470–1430._
 - Клик по plan-cell не открывает Form E.
 - Pill «🔒 Архив» в шапке Plan view.
 
-> **Archive scope** касается **только Plan view и `PlanRepo.save`**. TableView, Form E edit/delete, status transitions, mark-arrived — работают свободно. См. [`DOMAIN.md`](DOMAIN.md#archive-rules).
+> **Archive scope** касается **только Plan view и runtime `PlanRepo.save`**. TableView, Form E edit/delete, status transitions, mark-arrived — работают свободно. Seed layer записывает archived `WeekPlan` напрямую (не runtime user/service edit). См. [`DOMAIN.md`](DOMAIN.md#archive-rules).
+>
+> В seed Phase 1 archive=true присваивается **предыдущей** относительно `currentWeekId()` неделе. Конкретные week-номера/year — не фиксированы; `previous(-1) / current(0) / next(+1)` вычисляются в момент seed. Примеры в документации (например, «W17/2025») — иллюстративные, не обязательные.
 
 #### Редактирование плана
 
@@ -364,11 +366,13 @@ _Источник: `reference/project/Wireframes.html` L1346–1488, `reference/
 
 | Status | Admin | Operator | User |
 |---|---|---|---|
-| `scheduled` | Сохранить (full edit), Отправить (→ sent), Удалить | Сохранить (только comment), статус-действия скрыты, Удалить скрыто | edit mode недоступен |
-| `sent` | Сохранить (full edit), Отметить прибывшим (→ arrived), Удалить | Сохранить (только comment), Отметить прибывшим, Удалить скрыто | edit mode недоступен |
-| `arrived` | Сохранить (только comment, поля акта — Phase 2), Удалить | Сохранить (только comment), Удалить скрыто | edit mode недоступен |
+| `scheduled` | Сохранить (full edit), Отправить (→ sent), Удалить | Сохранить (только `comment`); status-actions отсутствуют; Удалить скрыто | edit mode недоступен |
+| `sent` | Сохранить (full edit), Отметить прибывшим (→ arrived), Удалить | Сохранить (только `comment`); status-actions отсутствуют; mark-arrived доступен **через TableView action**, не через Form E; Удалить скрыто | edit mode недоступен |
+| `arrived` | Сохранить (только `comment`, поля акта — Phase 2), Удалить | Сохранить (только `comment`); status-actions отсутствуют; Удалить скрыто | edit mode недоступен |
 
-Restricted mode (Operator): все поля read-only, кроме `comment`. Add/remove `ShipmentItem` disabled. Status actions — только разрешённые (`sent → arrived`).
+Restricted mode (Operator): все поля read-only, кроме `comment`. Add/remove `ShipmentItem` disabled. **Status-actions внутри restricted Form E отсутствуют для всех статусов**; разрешённый transition `sent → arrived` для Operator выполняется через TableView action (`MarkArrivedButton`), не через Form E.
+
+Edit-mode для статуса `arrived` (Admin или Operator): остальные поля кроме `comment` — read-only; add/remove `ShipmentItem` disabled; status-actions отсутствуют.
 
 Обратные переходы запрещены всем. Status matrix — [`DOMAIN.md`](DOMAIN.md#status-transitions).
 

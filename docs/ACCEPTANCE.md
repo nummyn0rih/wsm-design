@@ -1,6 +1,10 @@
 # WSM — Phase 1 Acceptance Checklist
 
 > Verification checklist для Phase 1 Core. Разнесён по ролям (Admin / Operator / User) + общие проверки (Routing, Persistence, Aesthetics, Tests, Dev tools). Каждый пункт проверяется вручную или unit-тестом.
+>
+> **Scope**: checklist описывает **конечное состояние Phase 1 implementation** после завершения всех milestones M1–M13 ([`TASKS.md`](TASKS.md)). До завершения M1 (project setup) пункты §1.1–§1.4 не применимы — это не считается провалом текущего documentation-only patch.
+>
+> **Director note**: роль `director` зарезервирована в `Role` / `ROLE_LABELS` для Phase 3+ и в Phase 1 RoleToggle **отсутствует**. Никаких director-specific acceptance scenarios в этом checklist.
 
 ## Contents
 
@@ -30,14 +34,14 @@
 
 - [ ] `/` редиректит на `/shipments`.
 - [ ] `/shipments` рендерит `ShipmentsPage` с default `view=table`, `week=<currentISOWeek>`, `year=<currentYear>` если query пустые.
-- [ ] `/shipments?view=heatmap&week=17&year=2025` рендерит Heatmap W17/2025.
-- [ ] `/shipments?view=plan&week=18&year=2025` рендерит Plan W18/2025.
-- [ ] Переключение Table → Heatmap при `?week=18&year=2025` → Heatmap открывается на W18.
-- [ ] Переключение Plan → Table при `?week=16&year=2025` → Table focused на W16.
+- [ ] `/shipments?view=heatmap&week=N&year=YYYY` рендерит Heatmap для указанной недели N года YYYY (для любых валидных N/YYYY).
+- [ ] `/shipments?view=plan&week=N&year=YYYY` рендерит Plan для указанной недели.
+- [ ] Переключение Table → Heatmap при `?week=N&year=YYYY` → Heatmap открывается на той же неделе N (week/year сохраняются при view switch).
+- [ ] Переключение Plan → Table при `?week=N&year=YYYY` → Table focused на той же неделе N.
 - [ ] WeekNavigator (Heatmap/Plan) меняет URL через `replaceState`, не push.
 - [ ] `/references/drivers` рендерит DriversRef.
 - [ ] Несуществующий путь рендерит StubPage «Раздел в работе».
-- [ ] BrowserRouter работает (прямой ввод URL).
+- [ ] `createBrowserRouter` + `<RouterProvider>` работает; прямой ввод URL рендерит правильный экран.
 
 ### 1.3 Persistence
 
@@ -57,7 +61,7 @@
 
 ### 1.5 TableView (общее)
 
-- [ ] Отображаются все 3 недели (W16 архив, W17 текущая, W18 следующая) из сидов.
+- [ ] Отображаются 3 недели из сидов: previous (archive), current, next — relative `currentWeekId()` на момент seed.
 - [ ] Default expanded = selected (или current) week. Остальные collapsed.
 - [ ] Клик по заголовку недели разворачивает/сворачивает.
 - [ ] Клик по заголовку дня разворачивает/сворачивает.
@@ -73,15 +77,15 @@
 - [ ] Auto-filter: показываются только raw'ы с ≥1 shipment за неделю (независимо от `visibleRaws`).
 - [ ] Цвета ячеек соответствуют `RawMaterial.bg`, интенсивность ~ объёму.
 - [ ] Тоталы строк, столбцов и угла корректны.
-- [ ] Селектор недели работает; W17 → W18 → W16 (archive).
+- [ ] Селектор недели работает; навигация current → next → previous (archive) и обратно.
 - [ ] Факт ячейки включает все 3 статуса.
 - [ ] **«Сумма (кг)»** — активная кнопка.
-- [ ] **«Среднее за день»** — disabled + tooltip «Phase 2».
-- [ ] **«% от плана недели»** — disabled + tooltip «Phase 2».
+- [ ] **«Среднее за день»** — `disabled` (или `aria-disabled="true"`) + tooltip «Phase 2». Клик не меняет state.
+- [ ] **«% от плана недели»** — `disabled` (или `aria-disabled="true"`) + tooltip «Phase 2». Клик не меняет state.
 
 ### 1.7 PlanView (общее)
 
-- [ ] Для W17 (current) с заполненным `visibleRaws` рендерится сетка N × 6 дней.
+- [ ] Для current-week WeekPlan с заполненным `visibleRaws` рендерится сетка N × 6 дней.
 - [ ] Строки отсортированы по `RawMaterial.sortOrder` ASC.
 - [ ] Все 6 цветовых состояний ячеек видны на seed-данных (`empty`, `emptyOver`, `short`, `close`, `norm`, `over`).
 - [ ] Маркер 100% виден на каждом ProgressBar.
@@ -89,14 +93,14 @@
 - [ ] Тоталы недели в подвале (sum plan, fact, %, overall progress).
 - [ ] **Heatmap НЕ использует `visibleRaws`** — независимый auto-filter.
 
-### 1.8 PlanView — Archive week (W16/2025)
+### 1.8 PlanView — Archive week (previous, relative to today)
 
 - [ ] Input'ы плана `readonly`.
 - [ ] ⚙ кнопка скрыта (для **любой** роли).
 - [ ] Клик по plan-cell **не открывает** Form E (silent disabled, без тоста).
 - [ ] Pill «🔒 Архив» в шапке.
-- [ ] **TableView для W16: edit/delete/mark-arrived работают как обычно** (archive scope не блокирует Shipment).
-- [ ] Form E можно открыть из TableView на W16 shipment.
+- [ ] **TableView для archive week: edit/delete/mark-arrived работают как обычно** (archive scope не блокирует Shipment).
+- [ ] Form E можно открыть из TableView на archive-week shipment.
 
 ### 1.9 Form E (общее: validation + view)
 
@@ -123,8 +127,8 @@
 - [ ] Фильтр ТК работает.
 - [ ] DriverModal по клику на ФИО:
   - [ ] ФИО, телефон (форматированный), ТК (name), доп.инфо корректны.
-  - [ ] Кнопка «📋 копировать» работает (`navigator.clipboard.writeText(formatPhoneRu)`).
-  - [ ] Кнопка «Открыть карточку ТК» — disabled.
+  - [ ] Кнопка «📋 копировать» работает: `navigator.clipboard.writeText(formatPhoneRu(phone))` — копируется **human-readable** строка `+7 (901) 234-56-78` (не E.164, не `tel:` URI).
+  - [ ] Кнопка «Открыть карточку ТК» — `disabled` + tooltip «Phase 2». Клик не меняет state.
   - [ ] Закрытие по ✕ и backdrop click.
 
 ### 1.11 Эстетика
@@ -169,7 +173,7 @@
 
 - [ ] Status `scheduled`: доступны «Сохранить» (full edit), «Отправить» (→ sent), «Удалить».
 - [ ] Status `sent`: доступны «Сохранить» (full edit), «Отметить прибывшим» (→ arrived), «Удалить».
-- [ ] Status `arrived`: «Сохранить» влияет только на `comment`; остальные поля read-only; «Удалить» доступно.
+- [ ] Status `arrived`: «Сохранить» влияет только на `comment`; **остальные поля (driver, tk, dates, items) read-only**; **add/remove `ShipmentItem` disabled**; status-actions отсутствуют; «Удалить» доступно.
 - [ ] Обратный переход (например `sent → scheduled`) недоступен ни через одну кнопку.
 
 ### 2.5 PlanView (Admin)
@@ -179,7 +183,7 @@
 - [ ] Plan input нормализуется до шага 0.1 (введённое `1.234` → сохраняется `1.2`).
 - [ ] Plan input блокирует негативные числа.
 - [ ] Рефреш страницы → новое значение плана сохранилось.
-- [ ] Empty state (W18 если `visibleRaws=[]`): «План не создан. Отметьте овощи для планирования через ⚙».
+- [ ] Empty state (next-week WeekPlan если `visibleRaws=[]`): «План не создан. Отметьте овощи для планирования через ⚙».
 - [ ] ⚙ popover открывает плоский список 13 овощей, sorted by `sortOrder` ASC.
 - [ ] Поставить чекбокс на любой овощ — успешно.
 - [ ] Снять чекбокс с овоща без плана и без отгрузок — успешно.
@@ -230,9 +234,8 @@
 - [ ] Add/remove `ShipmentItem` ✕ кнопки disabled или скрыты.
 - [ ] Поле `comment` **editable**.
 - [ ] «Сохранить» сохраняет **только** `comment`; никаких других изменений.
-- [ ] Status `scheduled`: status-actions **скрыты** (Operator не может `scheduled → sent`).
-- [ ] Status `sent`: «Отметить прибывшим» **видна** → `sent → arrived`.
-- [ ] Status `arrived`: status-actions отсутствуют (как у Admin).
+- [ ] **Status actions внутри restricted Form E ОТСУТСТВУЮТ для всех статусов** (scheduled, sent, arrived). Это касается всех transition-кнопок «Отправить» / «Отметить прибывшим».
+- [ ] Разрешённый Operator transition `sent → arrived` выполняется **через TableView action** (`MarkArrivedButton`), не через Form E.
 - [ ] «Удалить» **скрыта** во всех статусах.
 
 ### 3.4 PlanView (Operator)
@@ -318,7 +321,15 @@
 
 ### `src/services/__tests__/`
 
-- [ ] `permissions.test.ts` — все `canXxx(...)` × 3 active роли (admin/operator/user); director возвращает false для всего.
+- [ ] `permissions.test.ts`:
+  - [ ] Все `canXxx(...)` × 3 active роли (admin/operator/user); director возвращает false для всего.
+  - [ ] `canEditShipmentCoreFields(admin, shipment{status:'arrived'})` → **false** (arrived блокирует core edit).
+  - [ ] `canEditShipmentCoreFields(admin, shipment{status:'scheduled'|'sent'})` → true.
+  - [ ] `canEditShipmentItems(admin, shipment{status:'arrived'})` → **false**.
+  - [ ] `canEditShipmentItems(admin, shipment{status:'scheduled'|'sent'})` → true.
+  - [ ] `canEditShipmentComment(admin, shipment{status:'arrived'})` → true (comment editable на любом статусе).
+  - [ ] `canEditShipmentComment(operator, shipment{status:'arrived'})` → true.
+  - [ ] `canEditShipmentComment(user, ...)` → false.
 - [ ] `shipmentStatus.test.ts`:
   - [ ] `canTransitionShipmentStatus('admin', 'scheduled', 'sent')` → true.
   - [ ] `canTransitionShipmentStatus('admin', 'sent', 'arrived')` → true.

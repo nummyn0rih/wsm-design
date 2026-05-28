@@ -66,16 +66,18 @@
 - [ ] `src/repos/types.ts` — интерфейсы `CrudRepo`, `DriverRepo`, `ShipmentRepo`, etc.
 - [ ] `src/repos/LocalStorageRepo.ts` — базовый класс с in-memory cache, observer, `migrate()` заглушкой.
 - [ ] `src/repos/ShipmentRepo.ts` — extends LocalStorageRepo + `countByDriver`.
-- [ ] `src/repos/DriverRepo.ts`, `TKRepo.ts`, `SupplierRepo.ts`, `RawRepo.ts`, `PlanRepo.ts` (+`byOffset`), `TaraTypeRepo.ts` (read-only).
+- [ ] `src/repos/DriverRepo.ts`, `TKRepo.ts`, `SupplierRepo.ts`, `RawRepo.ts`, `PlanRepo.ts` (+`byOffset`), `TaraTypeRepo.ts` (read-only — UI не вызывает save/delete).
 - [ ] `src/repos/RepoContext.tsx` — provider + hooks.
-- [ ] `src/data/seed/index.ts` — `seedIfEmpty(repos)`.
-- [ ] `src/data/seed/taraTypes.seed.ts` — `TaraType` records.
+- [ ] `src/data/seed/index.ts` — `seedIfEmpty(repos)` **sequential** для FK:
+  1. `seedTaraTypes` → 2. `seedRaws` / `seedTks` / `seedSuppliers` → 3. `seedDrivers` → 4. `seedShipments` → 5. `seedPlans`.
+- [ ] `src/data/seed/taraTypes.seed.ts` — `TaraType` records (FK target для `RawMaterial.allowedTara`).
 - [ ] `src/data/seed/raws.seed.ts` — 13 raws с `sortOrder`, `allowedTara`, `bg`, `dot`.
 - [ ] `src/data/seed/tks.seed.ts` — 3 TKs.
 - [ ] `src/data/seed/suppliers.seed.ts` — 7 suppliers.
 - [ ] `src/data/seed/drivers.seed.ts` — 6 drivers с E.164 phones (включая driver без shipments и driver с shipments).
-- [ ] `src/data/seed/shipments.seed.ts` — 30 shipments × 3 weeks (W16/W17/W18 2025); все статусы; **никаких Sunday arrDate**; покрытие seed scenarios S1–S12.
-- [ ] `src/data/seed/plans.seed.ts` — 3 WeekPlans (W16 archive, W17 current, W18 next); explicit `visibleRaws` для каждого; покрытие всех 6 cell states.
+- [ ] `src/data/seed/shipments.seed.ts` — ~30 shipments × 3 weeks (**previous / current / next relative to `currentWeekId()`**); все статусы; **никаких Sunday arrDate**; покрытие seed scenarios S1–S12.
+- [ ] `src/data/seed/plans.seed.ts` — 3 WeekPlans: **previous (archive=true), current, next** — relative `currentWeekId()` на момент seed; explicit `visibleRaws` для каждого; покрытие всех 6 cell states.
+- [ ] Archive seed bypass: seed layer должен иметь безопасный путь записи `archived` `WeekPlan` (минуя runtime `PlanRepo.save` archive check). См. [`IMPLEMENTATION.md#archive-seed-bypass`](IMPLEMENTATION.md#archive-seed-bypass) — вариант A (internal write) или вариант B (`{ allowArchive: true }` flag).
 
 **Dependencies**: M2, M3.
 

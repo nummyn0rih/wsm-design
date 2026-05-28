@@ -364,11 +364,13 @@ Form E в edit-mode, действия по `(status, role)`:
 
 | Status | Admin actions | Operator actions | User |
 |---|---|---|---|
-| `scheduled` | Сохранить (full edit), Отправить (→ sent), Удалить | Сохранить (только `comment`), статус-действия скрыты, Удалить скрыто | edit недоступен |
-| `sent` | Сохранить (full edit), Отметить прибывшим (→ arrived), Удалить | Сохранить (только `comment`), Отметить прибывшим, Удалить скрыто | edit недоступен |
-| `arrived` | Сохранить (только `comment`; поля акта Phase 2), Удалить | Сохранить (только `comment`), Удалить скрыто | edit недоступен |
+| `scheduled` | Сохранить (full edit), Отправить (→ sent), Удалить | Сохранить (только `comment`); status-actions отсутствуют; Удалить скрыто | edit недоступен |
+| `sent` | Сохранить (full edit), Отметить прибывшим (→ arrived), Удалить | Сохранить (только `comment`); status-actions отсутствуют; mark-arrived — через TableView action, не через Form E; Удалить скрыто | edit недоступен |
+| `arrived` | Сохранить (только `comment`; поля акта Phase 2), Удалить | Сохранить (только `comment`); status-actions отсутствуют; Удалить скрыто | edit недоступен |
 
-Для Operator: все поля кроме `comment` — read-only; add/remove `ShipmentItem` — disabled; status-actions — только разрешённые transition.
+Для Operator: все поля кроме `comment` — read-only; add/remove `ShipmentItem` — disabled. **Status-actions внутри restricted Form E отсутствуют для всех статусов**; разрешённый Operator transition `sent → arrived` выполняется через TableView action (`MarkArrivedButton`).
+
+Для статуса `arrived` (Admin или Operator): остальные поля кроме `comment` — read-only; add/remove `ShipmentItem` disabled; status-actions отсутствуют.
 
 ---
 
@@ -386,7 +388,9 @@ Form E в edit-mode, действия по `(status, role)`:
 - Mark-arrived action в TableView.
 - `ShipmentRepo` методы.
 
-В Phase 1 архивная неделя ровно одна — W16/2025 (offset=-1 в сидах). Флаг `archive` — в сидах, не вычисляется от today.
+**Seed layer записывает archived `WeekPlan` напрямую** (минуя runtime save check) — это initial data setup, не runtime user/service edit. Инвариант I9 относится к runtime save, не к seed write path. Подробности — [`IMPLEMENTATION.md#seed-strategy`](IMPLEMENTATION.md#seed-strategy).
+
+В Phase 1 архивная неделя — **предыдущая относительно `currentWeekId()`** на момент seed. Флаг `archive` присваивается в seed, не вычисляется от today во время runtime. Конкретные week-номера/year (например, «W16/2025») — иллюстративные примеры, не обязательные labels.
 
 ---
 
@@ -481,6 +485,8 @@ _Источник: комментарий в `reference/project/pivot-summary.js
 
 Inline error в Form E: «Воскресенье — нерабочий день. Выберите дату поступления с ПН по СБ».
 
+**Prefill из Plan cell не освобождает от Sunday-block validation**: даже если значение пришло из prefill (locked `arrDate`), валидация Sunday применяется при save. Plan grid Mon–Sat only, поэтому click на воскресенье технически невозможен — но safety check на validation layer обязателен. Seed/plan cells **не должны** содержать Sunday `arrDate`.
+
 ---
 
 ## Units
@@ -551,9 +557,15 @@ formatKg(kg: number, locale?: string): string
 
 Все телефонные номера — **строго E.164 RU**: `^\+7\d{10}$`.
 
-- **Хранение**: `+79012345678`
-- **Отображение**: `+7 (901) 234-56-78`
-- **`tel:` URI** (Phase 3 mobile): `tel:+79012345678`
+Три формы Phase 1:
+
+| Форма | Применение | Пример |
+|---|---|---|
+| **Storage** (E.164) | LocalStorage `wsm:v1:drivers`, `Driver.phone` поле | `+79012345678` |
+| **Display** (human-readable) | UI отображение в DriverModal, DriversRef таблице, всех Label | `+7 (901) 234-56-78` |
+| **Copy** | Кнопка «📋 копировать» в DriverModal — копирует **human-readable formatted** строку (не E.164, не tel: URI) | `+7 (901) 234-56-78` |
+
+`tel:` URI и другие интеграционные форматы (vCard, etc.) — **Phase 3 mobile**. Не реализуются Phase 1.
 
 Helpers в `src/lib/phone.ts`:
 

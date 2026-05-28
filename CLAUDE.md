@@ -1,63 +1,173 @@
 # CLAUDE.md — WSM Repository Rules
 
-> Эти правила обязательны для любого Claude Code сеанса в этом репозитории.
+> Operational guide для будущих Claude Code сессий в этом репозитории. Не дублирует PRD — навигация + поведенческие правила.
 
-## Sources of truth
+## Sources of truth (order)
 
-- Product spec: [`docs/PRD.md`](docs/PRD.md)
-- Domain & business rules: [`docs/DOMAIN.md`](docs/DOMAIN.md)
-- Architecture & implementation: [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md)
-- Visual rules: [`docs/DESIGN.md`](docs/DESIGN.md)
-- Acceptance checklist: [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md)
-- Implementation backlog: [`docs/TASKS.md`](docs/TASKS.md)
-- Reference bundle (frozen, read-only): [`reference/`](reference/)
-- Audit history: [`docs/audit/`](docs/audit/)
-- Legacy snapshots: [`docs/legacy/`](docs/legacy/)
+Если документы конфликтуют — **остановись и запроси уточнение**, не выбирай молча.
+
+1. [`docs/PRD.md`](docs/PRD.md) — product scope, phase boundaries, user flows.
+2. [`docs/DOMAIN.md`](docs/DOMAIN.md) — domain model, статусы, роли, permissions, validation, инварианты.
+3. [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) — architecture, folder structure, repo/service patterns.
+4. [`docs/DESIGN.md`](docs/DESIGN.md) — visual rules, палитры, UI behavior, accessibility baseline.
+5. [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — done criteria, manual + automated checks.
+6. [`docs/TASKS.md`](docs/TASKS.md) — implementation order, Phase 1 milestones, Phase 2/3 backlog.
+
+Reference / archive:
+- [`reference/`](reference/) — frozen design bundle (read-only, не редактировать).
+- [`docs/audit/`](docs/audit/) — audit artifacts.
+- [`docs/legacy/`](docs/legacy/) — snapshots прошлых версий.
 
 ## Work process
 
-- **PRD-first**: не одной строки кода приложения, пока продуктовая/доменная документация не утверждена пользователем.
+- **PRD-first**: ни одной строки кода приложения, пока продуктовая/доменная документация не утверждена пользователем.
 - **Plan before code**: любая нетривиальная задача начинается с плана и явного approval.
-- **One task at a time**: без расползания scope. Если задача требует расширения — спросить, не делать.
-- **Doc parity**: при изменении доменной модели или архитектуры обновлять соответствующий документ в том же коммите.
-- **Run checks before reporting done**: typecheck, lint, vitest — если доступны в окружении.
+- **One task at a time**: без расползания scope. Расширение требует — спросить, не делать.
+- **Doc parity**: при изменении доменной модели или архитектуры обновлять весь связанный комплект документов (см. правило 14 ниже).
+- **Run checks before reporting done**: typecheck, lint, vitest — если доступны.
 
-## Scope control (Phase 1)
+## Operational rules
 
-- Активные роли Phase 1: `admin`, `operator`, `user`. `director` зарезервирован в типе, но в UI не активен.
-- Реализуемые экраны: главная (Table/Heatmap/Plan), DriverModal, Form E, DriversRef.
-- Любая Phase 2/3 функциональность реализуется только по явному запросу.
-- Никаких новых dependencies без approval.
-- `reference/` — frozen reference bundle, **не трогать**.
+### 1. Phase discipline
 
-## Domain conventions
+- Phase 2/3 не реализуется без отдельного approval.
+- Phase 2/3 reference files — визуальный/продуктовый ориентир, не scope.
+- Элементы Phase 2/3 в UI Phase 1: либо hidden, либо `disabled` + tooltip + `aria-disabled`, либо `<StubPage>` для sidebar.
 
-- IDs — английский kebab/snake (`raw_cucumbers`, `tara_veg_box`, `drv_xxx`).
-- Enum значения — английские строки (`'scheduled' | 'sent' | 'arrived'`).
-- Русский текст — только в `*_LABELS` константах.
-- Phone storage: E.164 (`+7XXXXXXXXXX`); UI форматирует через `formatPhoneRu`.
-- Dates — ISO date strings `YYYY-MM-DD`, обрабатываются как plain local dates; никаких UTC-конверсий.
-- Working week = Mon–Sat. Sunday `arrDate` блокируется валидацией.
-- Units: `ShipmentItem.kg` — кг (integer > 0); `WeekPlan.plan[r][d]` — тонны (number, step 0.1).
-- `factTons = sumKg / 1000`.
+### 2. No silent scope expansion
 
-## Architecture conventions
+Запрещено добавлять без approval: новые поля, фильтры, статусы, роли, страницы, API, persistence backend, auth, мобильный UI, аналитику, уведомления, печать. Если кажется, что чего-то не хватает — создай вопрос/assumption, не кодь расширение.
 
-- **Repos** (`src/repos/`) — persistence + observer; `CrudRepo<T, Q>` — Phase 1 внутренний контракт.
-- **Services** (`src/services/`) — бизнес-правила, permissions, status transitions, plan rules, date rules, validation. Не размазывать бизнес-логику по React-компонентам.
-- **Hooks** — тонкие обёртки над services и repo subscriptions.
-- **RoleGate** — UI guard, не security boundary. Реальный enforcement permissions — backend Phase 3. В Phase 3 возможен `PermissionGate` (permission-based вместо role-based).
-- **LocalStorageRepo** — Phase 1 only. Бесшовная замена на API не гарантируется (потребуется query/cache layer).
+### 3. Roles & permissions
 
-## Forbidden in Phase 1
+- Phase 1 active: `admin`, `operator`, `user` (read-only).
+- `director` зарезервирован в типе `Role` + `ROLE_LABELS`, но **не активен** в RoleToggle. Никаких director-specific behavior в Phase 1 acceptance/tasks.
+- Все UI actions проверяются через permission helpers (`src/services/permissions.ts`), не только скрываются в UI.
 
-- Прямой переход status `scheduled → arrived` (запрещён). Только `scheduled → sent → arrived`.
-- Обратные переходы статусов.
-- Редактирование `Shipment` Operator'ом, кроме `comment`.
-- Архив-блок на TableView/edit/delete — archive касается **только** `WeekPlan` и Plan view.
-- Sunday `arrDate`.
-- Period dropdown в TableView (Phase 2).
+### 4. Status transitions
 
-## Out of scope
+- Разрешено: `scheduled → sent`, `sent → arrived`. Только через documented service (`shipmentStatus.ts`).
+- **Запрещено**: direct `scheduled → arrived`, любые обратные. Не должно появляться ни в UI, ни в service.
+- Operator выполняет `sent → arrived` через TableView action — **не** через restricted Form E (там status-actions отсутствуют).
+- `arrived` shipment: core/items read-only; `comment` editable для admin/operator.
 
-См. [`docs/TASKS.md`](docs/TASKS.md) → Phase 2/3 backlog.
+### 5. Data / unit discipline
+
+- `ShipmentItem.kg` — только кг (integer > 0).
+- `WeekPlan.plan[r][d]` — только тонны (number, step 0.1).
+- Сравнения план/факт — после явного conversion (`factTons = kgToTons(sumKg)`).
+- Запрещено смешивать kg и tons в одной переменной без явного имени.
+
+### 6. Seed discipline
+
+- Seed создаёт 3 недели **relative to `currentWeekId()`**: previous (archive=true), current, next.
+- W16/W17/W18 2025 — **только пример**, не обязательные labels.
+- Seed order для FK dependencies: TaraTypes → Raws/TKs/Suppliers → Drivers → Shipments → Plans.
+- Archive restrictions не блокируют initial seed (seed layer обходит `PlanRepo.save` archive check).
+- **No Sunday `arrDate`** во всём seed.
+
+### 7. Archive semantics
+
+- `WeekPlan.archive=true` блокирует только Plan view editing и runtime `PlanRepo.save`.
+- TableView, Form E edit/delete, status transitions для Shipment в архивной неделе — работают свободно.
+- Никаких других «archive» интерпретаций.
+
+### 8. Repository / service discipline
+
+- UI не мутирует repositories напрямую, если есть service для операции.
+- Business rules — в `src/services/` и `src/lib/`, не в React-компонентах.
+- `LocalStorageRepo` / in-memory — Phase 1 implementation detail, **не** финальный backend contract.
+- Не создавать generic backend abstraction сверх описанного в IMPLEMENTATION.md.
+
+### 9. React state discipline
+
+- `useSyncExternalStore` `getSnapshot` **не возвращает** новый array/object reference на каждый вызов — иначе бесконечный rerender.
+- Phase 1 pattern: repo возвращает stable full snapshot; hooks фильтруют/сортируют через `useMemo`.
+- Другая схема — сначала обновить IMPLEMENTATION.md и получить approval.
+
+### 10. Reference bundle
+
+- `reference/` — frozen, не редактировать.
+- Не копировать prototype JSX one-to-one в production. Это прототипы, не production-ready.
+- Использовать reference как визуальный/поведенческий ориентир.
+
+### 11. Styling
+
+- Без сторонних CSS frameworks.
+- Sketch visual system — через `tokens.css` и `sketch.css`.
+- Цвета не hardcode в компонентах, кроме явно задокументированных fallback.
+- RawMaterial colors — только из seed fields `bg`/`dot` через helper. Никакого дубликата `RAW_COLORS` map.
+
+### 12. Accessibility baseline
+
+- `<button>`/`<input>`/`<select>`/`<textarea>` или семантические элементы — не `<div onClick>`.
+- Icon-only buttons требуют `aria-label`.
+- Disabled placeholders — `disabled` или `aria-disabled="true"` + tooltip.
+- Focus-visible сохраняется.
+- Modal — focus trap Phase 1 минимум.
+
+### 13. Routing
+
+- `createBrowserRouter` + `<RouterProvider>` (не `<BrowserRouter>` JSX wrapper).
+- URL state для TableView — согласно [`IMPLEMENTATION.md#9-shipmentspage-state-model`](docs/IMPLEMENTATION.md#9-shipmentspage-state-model): view/week/year.
+- Unknown routes → `<StubPage>` «Раздел в работе».
+- Не добавлять routes сверх Phase 1.
+
+### 14. Documentation parity
+
+При изменении domain/permission/status behavior — обновлять весь связанный комплект:
+- PRD.md (если меняется product scope);
+- DOMAIN.md (правила/типы);
+- IMPLEMENTATION.md (архитектура/helpers);
+- DESIGN.md (UI behavior);
+- ACCEPTANCE.md (checks);
+- TASKS.md (последовательность);
+- CLAUDE.md (guardrails).
+
+Не оставлять документы inconsistent.
+
+### 15. Ask-before-changing critical decisions
+
+Остановись и спроси approval перед изменением:
+- roles / permissions;
+- status transitions;
+- archive semantics;
+- units (kg/tons);
+- seed scenario shape;
+- структура файлов docs/;
+- Phase 1 scope;
+- storage / persistence approach;
+- router approach;
+- design palette / reference-derived visuals.
+
+### 16. Commit discipline
+
+- Следуй выбранной commit strategy (см. план задачи).
+- Не смешивать documentation patch и application implementation в одном коммите.
+- Для documentation patch не создавать `src/`, `package.json`, Vite/TS config или runtime код.
+- После patch — вывести changed files и summary.
+
+### 17. Validation before final response
+
+Перед финальным ответом по documentation patch выполнить grep/checklist:
+- нет обязательных W16/W17/W18 current labels;
+- нет разрешения direct `scheduled → arrived`;
+- нет абсолютного пути `/home/...`;
+- relative links внутри `docs/` корректны;
+- `docs/PRD.md` ссылается на `legacy/PRD-v1.2.md` (не `docs/legacy/...`);
+- CLAUDE.md не противоречит остальной документации.
+
+---
+
+## Out of scope (Phase 1)
+
+См. [`docs/TASKS.md`](docs/TASKS.md#phase-2--бизнес-разделы).
+
+---
+
+## When in doubt
+
+1. **Stop**.
+2. Identify conflicting docs / rules.
+3. Ask for approval.
+4. **Do not silently expand scope.**

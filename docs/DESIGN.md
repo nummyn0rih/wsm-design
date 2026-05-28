@@ -35,10 +35,14 @@
 
 | Шрифт | Применение | Источник |
 |---|---|---|
-| **Caveat** | Все Label, заголовки, основной текст | Google Fonts |
-| **JetBrains Mono** | Цифры (вес кг, прогресс %, ProgressBar tooltips) | Google Fonts |
+| **Caveat** | Заголовки, labels, sketch-декоративный текст | Google Fonts |
+| **JetBrains Mono** | Табличные числа, плотные данные (вес кг, прогресс %, ProgressBar tooltips, ItemLine kg) | Google Fonts |
 
-Подключение в `index.html` через `<link rel="preconnect">` + `<link rel="stylesheet">`. Без сторонних CSS-фреймворков.
+Правило: **Caveat** для всех декоративных/handwritten контекстов (заголовки секций, sidebar labels, pills, status chips, plan cell labels). **JetBrains Mono** для всего, что читается как табличные данные (цифры веса, проценты, даты в моноспейс-выравнивании).
+
+Подключение в `index.html` через `<link rel="preconnect">` + `<link rel="stylesheet">`. **Без сторонних CSS-фреймворков**.
+
+> Если reference требует Caveat в плотных данных и читаемость страдает — это intentional reference-matching decision. Любое отклонение от reference (например, замена Caveat на JetBrains Mono в табличных колонках) — отдельный change request, не silent decision.
 
 ---
 
@@ -85,7 +89,15 @@ _Источник: `reference/project/Wireframes.html` L200–211. **Не ред
 | `sent` | `#d4e6ed` | `#7eb0c0` | `#1a4868` | Отправлено |
 | `arrived` | `#d8ead4` | `#7eb070` | `#1a6b3a` | Прибыло |
 
-Реализация — `src/components/atoms/StatusChip.tsx`. Иконка emoji внутри chip'а (`📅 sent ✓`).
+Реализация — `src/components/atoms/StatusChip.tsx`. Внутри chip'а рендерится `{emoji} {STATUS_LABELS[status]}`:
+
+| Status | UI label |
+|---|---|
+| `scheduled` | `📅 Запланировано` |
+| `sent` | `🚚 Отправлено` |
+| `arrived` | `✓ Прибыло` |
+
+**Никаких enum-name (`sent`, `scheduled`) в visible UI** — пользователь видит только русские labels. Если reference показывает другие emoji, приоритет — reference; но микс «английский enum + русский label» (например `📅 sent ✓`) запрещён.
 
 ---
 
@@ -109,6 +121,23 @@ export function rawColor(rawId: string, raws: RawMaterial[]): { bg: string; dot:
 ```
 
 Seed-значения для 13 raw'ов хранятся в `src/data/seed/raws.seed.ts`. UI компонент `RawPill` принимает `rawId` + читает цвета через хук `useRaw(rawId)` или service.
+
+---
+
+### Color source-of-truth rules
+
+| Source | Применение |
+|---|---|
+| **CSS tokens** (`tokens.css`) | brand colors (`--bg`, `--ink`, `--border`, etc.) |
+| **Documented maps** (`CELL_STYLES`, `STATUS_CHIP_STYLES`) | plan cell states, status chip палитра — определены в `src/lib/cell-state.ts` и аналогах |
+| **`RawMaterial.bg / dot` seed fields** | raw material colors (13 raws) |
+
+Правила:
+
+- **Компоненты не hardcode hex**, кроме явно задокументированного fallback внутри helper (`rawColor` default `{ bg: '#eee', dot: '#999' }` для unknown rawId).
+- **Никаких локальных дубликатов** существующих палитр в компонентах.
+- **Запрещён `RAW_COLORS` map** как параллельный источник правды. Если такой map появляется — удалить, использовать seed.
+- Cross-document: см. [`DOMAIN.md#3-typescript-types`](DOMAIN.md#3-typescript-types) (RawMaterial), [`IMPLEMENTATION.md#13-folder-structure`](IMPLEMENTATION.md#13-folder-structure) (raw-colors.ts helper).
 
 ---
 
@@ -161,13 +190,25 @@ CSS (`src/styles/sketch.css`):
 
 - **Native `<input type="date">`** — без сторонних date picker'ов.
 - Стилизация через CSS: рамка, padding, font-family совпадают с другими input'ами. Pop-up календарь Chrome — приемлемый компромисс, не стилизуется глубоко.
-- В Plan-mode prefilled `arrDate` — `readonly` (через атрибут, не через `disabled`, чтобы UX выглядел консистентно).
+- В Plan-mode prefilled `arrDate` — **`readonly`, не `disabled`**:
+  - `readonly` оставляет значение в форме (входит в submit), визуально консистентный.
+  - `disabled` исключил бы значение и сломал бы submit + выглядел бы серым «выключенным» полем.
+- **Sunday-block validation применяется независимо от prefill**: даже если значение пришло из locked plan-cell, валидация проверяет `!isSunday(arrDate)` при save. Plan grid Mon–Sat only, поэтому Sunday prefill технически невозможен через UI; но safety check в validation layer обязателен.
+- Save валидирует `shipDate <= arrDate` и `kg > 0` для всех позиций — независимо от prefill.
+- Seed и plan cells **не должны** содержать Sunday `arrDate`.
 
 ---
 
 ## 7. UI placeholder rules
 
-Активные UI-контролы без логики выглядят рабочими — это UX-провал. Phase 1 policy:
+Активные UI-контролы без логики выглядят рабочими — это UX-провал. Общие принципы Phase 1:
+
+- **No state change on click**: disabled placeholder не меняет state приложения.
+- **`disabled` атрибут ИЛИ `aria-disabled="true"`** — обязательно. Без визуального признака запрещено.
+- **Tooltip «Phase 2»** (или «Phase 3») — обязателен, чтобы пользователь понял, почему не работает.
+- **Если control выглядит слишком активным и нет логики** — лучше скрыть/удалить, чем оставлять disabled.
+
+Phase 1 placeholder mapping:
 
 | Контрол | Phase 1 behavior |
 |---|---|
