@@ -1,20 +1,22 @@
 import type { Role, Shipment, Status } from '@/types/domain';
-import { canTransitionShipmentStatus as canTransitionPermission } from './permissions';
+import {
+  canTransitionShipmentStatus,
+  type StatusTransitionContext,
+} from './permissions';
 
-export function canTransitionShipmentStatus(
+export { canTransitionShipmentStatus };
+export type { StatusTransitionContext };
+
+const ALL_STATUSES: Status[] = ['scheduled', 'sent', 'arrived'];
+
+export function nextAllowedStatuses(
   role: Role,
-  from: Status,
-  to: Status,
-): boolean {
-  return canTransitionPermission(role, from, to);
-}
-
-export function nextAllowedStatuses(role: Role, s: Shipment): Status[] {
-  if (s.status === 'scheduled' && role === 'admin') return ['sent'];
-  if (s.status === 'sent' && (role === 'admin' || role === 'operator')) {
-    return ['arrived'];
-  }
-  return [];
+  s: Shipment,
+  context: StatusTransitionContext,
+): Status[] {
+  return ALL_STATUSES.filter((to) =>
+    canTransitionShipmentStatus(role, s.status, to, context),
+  );
 }
 
 export type TransitionResult =
@@ -27,8 +29,9 @@ export function transitionShipment(
   s: Shipment,
   to: Status,
   role: Role,
+  context: StatusTransitionContext,
 ): TransitionResult {
-  if (!canTransitionShipmentStatus(role, s.status, to)) {
+  if (!canTransitionShipmentStatus(role, s.status, to, context)) {
     return {
       ok: false,
       reason: `Переход ${s.status} → ${to} запрещён для роли ${role}`,

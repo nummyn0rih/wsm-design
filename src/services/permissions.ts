@@ -22,14 +22,20 @@ export function canDeleteShipment(role: Role, _s: Shipment): boolean {
   return role === 'admin';
 }
 
+export type StatusTransitionContext = 'tableView' | 'formE';
+
 export function canTransitionShipmentStatus(
   role: Role,
   from: Status,
   to: Status,
+  context: StatusTransitionContext,
 ): boolean {
-  if (from === 'scheduled' && to === 'sent') return role === 'admin';
+  if (from === 'scheduled' && to === 'sent') {
+    return role === 'admin';
+  }
   if (from === 'sent' && to === 'arrived') {
-    return role === 'admin' || role === 'operator';
+    if (role === 'admin') return true;
+    if (role === 'operator') return context === 'tableView';
   }
   return false;
 }
