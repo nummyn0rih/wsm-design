@@ -1,9 +1,10 @@
-import { Outlet } from 'react-router-dom';
+import { RoleProvider } from '@/context/RoleContext';
+import { MainShell } from '@/components/shell/MainShell';
 
 export default function App() {
   return (
-    <div className="app-skeleton">
-      <Outlet />
-    </div>
+    <RoleProvider>
+      <MainShell />
+    </RoleProvider>
   );
 }

@@ -1,26 +1,27 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter } from 'react-router-dom';
 import App from './App';
-
-function Placeholder() {
-  return (
-    <div style={{ padding: '24px' }}>
-      <h1 style={{ fontFamily: "'Caveat', system-ui, sans-serif", fontSize: '32px' }}>
-        WSM skeleton — M1
-      </h1>
-      <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}>
-        Project setup complete. Domain logic ships in M2+.
-      </p>
-    </div>
-  );
-}
+import { StubPage } from '@/components/shell/StubPage';
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
     children: [
-      { index: true, element: <Placeholder /> },
-      { path: '*', element: <Placeholder /> },
+      { index: true, element: <Navigate to="/shipments" replace /> },
+      { path: 'shipments', element: <StubPage title="Отгрузки (M6)" phase={2} /> },
+      { path: 'logistics', element: <StubPage title="Логистика материалов" phase={2} /> },
+      { path: 'contracts', element: <StubPage title="Контракты" phase={2} /> },
+      { path: 'analytics', element: <StubPage title="Аналитика" phase={2} /> },
+      { path: 'notifications', element: <StubPage title="Уведомления" phase={3} /> },
+      { path: 'references/raws', element: <StubPage title="Сырьё" phase={2} /> },
+      { path: 'references/suppliers', element: <StubPage title="Поставщики" phase={2} /> },
+      { path: 'references/tks', element: <StubPage title="ТК" phase={2} /> },
+      { path: 'references/drivers', element: <StubPage title="Водители (M10)" phase={2} /> },
+      { path: 'references/tara-types', element: <StubPage title="Виды тары" phase={2} /> },
+      { path: 'references/ingredients', element: <StubPage title="Ингредиенты" phase={2} /> },
+      { path: 'references/seasons', element: <StubPage title="Сезоны" phase={2} /> },
+      { path: 'settings', element: <StubPage title="Настройки" phase={3} /> },
+      { path: '*', element: <StubPage /> },
     ],
   },
 ]);

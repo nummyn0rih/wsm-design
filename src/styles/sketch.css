@@ -1,2 +1,40 @@
-/* M1 skeleton — sketch system (.sk-box, .sk-week, .wsm-scroll, .sk-hatch-*)
-   lands in M5+ alongside atoms/shell. See docs/DESIGN.md §1, §5. */
+/* Sketch system per docs/DESIGN.md §1, §5, §8. */
+
+.sk-box {
+  position: relative;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  padding: 12px;
+}
+
+.sk-box::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed var(--border-soft);
+  pointer-events: none;
+}
+
+.wsm-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.wsm-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+.wsm-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(42, 42, 42, 0.3);
+}
+.wsm-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.wsm-scroll:hover {
+  scrollbar-color: rgba(42, 42, 42, 0.3) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sidebar-active-bar);
+  outline-offset: 2px;
+}
