@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FC } from 'react';
 import type { RawMaterial, Role, Shipment, WeekPlan } from '@/types/domain';
+import { formatLocalDate } from '@/lib/date';
+import { weekRange } from '@/lib/week-utils';
 import { archiveLockApplies } from '@/services/planRules';
 import { canEditWeekPlan, canManagePlanVisibleRaws } from '@/services/permissions';
 import { usePlanRepo } from '@/repos/RepoContext';
@@ -18,6 +20,7 @@ interface Props {
   year: number;
   role: Role;
   onWeekChange: (weekNum: number, year: number) => void;
+  onCreateFromPlan: (rawId: string, arrDate: string) => void;
 }
 
 const SAVE_DEBOUNCE_MS = 300;
@@ -42,6 +45,7 @@ export const PlanView: FC<Props> = ({
   year,
   role,
   onWeekChange,
+  onCreateFromPlan,
 }) => {
   const planRepo = usePlanRepo();
   const [gearOpen, setGearOpen] = useState(false);
@@ -122,6 +126,17 @@ export const PlanView: FC<Props> = ({
     [wp, shipments, raws],
   );
 
+  // Create-from-plan: admin, non-archive only (same gate as plan editing).
+  // Operator/User/archive → undefined → cell click is silent (no Form E).
+  const handleCreateCell = canEdit
+    ? (rawId: string, day: 0 | 1 | 2 | 3 | 4 | 5) => {
+        const monday = weekRange(weekNum, year).start;
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + day);
+        onCreateFromPlan(rawId, formatLocalDate(d));
+      }
+    : undefined;
+
   const hasGrid = wp != null && wp.visibleRaws.length > 0;
 
   const emptyMessage = !wp
@@ -186,6 +201,7 @@ export const PlanView: FC<Props> = ({
           year={year}
           readonly={!canEdit}
           onPlanChange={handlePlanChange}
+          onCreateCell={handleCreateCell}
         />
       ) : (
         <div style={centered}>

@@ -1,13 +1,15 @@
-import type { CSSProperties, FC } from 'react';
+import { useState, type CSSProperties, type FC } from 'react';
 import type { Role, Shipment, Supplier } from '@/types/domain';
 import {
   canDeleteShipment,
   canEditShipmentComment,
   canEditShipmentCoreFields,
 } from '@/services/permissions';
+import { useShipmentRepo } from '@/repos/RepoContext';
 import { StatusChip } from '@/components/atoms/StatusChip';
 import { Pill } from '@/components/atoms/Pill';
 import { Label } from '@/components/atoms/Label';
+import { Modal } from '@/components/atoms/Modal';
 import { fmtDayMon, fmtKg } from '@/lib/format';
 import { MarkArrivedButton } from './MarkArrivedButton';
 import { ItemLine } from './ItemLine';
@@ -33,9 +35,8 @@ export const SHIPMENT_COLUMNS = [
 const iconBtn: CSSProperties = {
   background: 'transparent',
   border: 'none',
-  cursor: 'not-allowed',
+  cursor: 'pointer',
   fontSize: 13,
-  opacity: 0.3,
   padding: 0,
 };
 
@@ -45,6 +46,7 @@ interface Props {
   tkName: string;
   supplierMap: Map<string, Supplier>;
   role: Role;
+  onEdit: (shipment: Shipment) => void;
 }
 
 export const ShipmentRow: FC<Props> = ({
@@ -53,11 +55,22 @@ export const ShipmentRow: FC<Props> = ({
   tkName,
   supplierMap,
   role,
+  onEdit,
 }) => {
+  const repo = useShipmentRepo();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
   const totalKg = s.items.reduce((sum, it) => sum + it.kg, 0);
   const canEdit =
     canEditShipmentCoreFields(role, s) || canEditShipmentComment(role, s);
   const canDelete = canDeleteShipment(role, s);
+
+  const doDelete = async () => {
+    setBusy(true);
+    await repo.delete(s.id);
+    setBusy(false);
+    setConfirmDelete(false);
+  };
 
   return (
     <div style={{ borderBottom: '1px solid var(--border-soft)', padding: '6px 8px' }}>
@@ -102,10 +115,9 @@ export const ShipmentRow: FC<Props> = ({
           <button
             type="button"
             style={iconBtn}
-            disabled
-            aria-disabled="true"
+            onClick={() => onEdit(s)}
             aria-label="Редактировать отгрузку"
-            title="Редактирование отгрузки — Form E (M9)"
+            title="Редактировать отгрузку"
           >
             ✏
           </button>
@@ -116,10 +128,9 @@ export const ShipmentRow: FC<Props> = ({
           <button
             type="button"
             style={iconBtn}
-            disabled
-            aria-disabled="true"
+            onClick={() => setConfirmDelete(true)}
             aria-label="Удалить отгрузку"
-            title="Удаление отгрузки — M9"
+            title="Удалить отгрузку"
           >
             🗑
           </button>
@@ -136,6 +147,32 @@ export const ShipmentRow: FC<Props> = ({
           />
         ))}
       </div>
+
+      {confirmDelete && (
+        <Modal
+          open
+          onClose={() => setConfirmDelete(false)}
+          title="Удалить отгрузку"
+          width={360}
+        >
+          <Label size={15}>Удалить эту отгрузку? Действие необратимо.</Label>
+          <div
+            style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}
+          >
+            <button type="button" onClick={() => setConfirmDelete(false)} disabled={busy}>
+              Отмена
+            </button>
+            <button
+              type="button"
+              onClick={doDelete}
+              disabled={busy}
+              style={{ color: '#a02020' }}
+            >
+              🗑 Удалить
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

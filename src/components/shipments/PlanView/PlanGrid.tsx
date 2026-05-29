@@ -17,6 +17,7 @@ interface Props {
   year: number;
   readonly: boolean;
   onPlanChange: (rawId: string, day: 0 | 1 | 2 | 3 | 4 | 5, value: number) => void;
+  onCreateCell?: (rawId: string, day: 0 | 1 | 2 | 3 | 4 | 5) => void;
 }
 
 const GRID = '150px repeat(6, minmax(96px, 1fr))';
@@ -36,6 +37,7 @@ export const PlanGrid: FC<Props> = ({
   year,
   readonly,
   onPlanChange,
+  onCreateCell,
 }) => {
   const dayLabels = useMemo(() => {
     const monday = weekRange(weekNum, year).start;
@@ -120,6 +122,9 @@ export const PlanGrid: FC<Props> = ({
                       pct={c.pct}
                       readonly={readonly}
                       onPlanChange={(v) => onPlanChange(row.rawId, c.day, v)}
+                      onCreate={
+                        onCreateCell ? () => onCreateCell(row.rawId, c.day) : undefined
+                      }
                     />
                   </div>
                 ))}

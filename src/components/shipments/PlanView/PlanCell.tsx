@@ -15,6 +15,7 @@ interface Props {
   pct: number;
   readonly: boolean;
   onPlanChange: (value: number) => void;
+  onCreate?: () => void;
 }
 
 function planText(t: number): string {
@@ -44,6 +45,7 @@ export const PlanCell: FC<Props> = ({
   pct,
   readonly,
   onPlanChange,
+  onCreate,
 }) => {
   const st = CELL_STYLES[state];
   const [text, setText] = useState(() => planText(planTons));
@@ -111,19 +113,53 @@ export const PlanCell: FC<Props> = ({
         />
       </div>
 
-      <Label size={12} mono color={st.label}>
-        факт {formatTons(factTons)} т
-      </Label>
-
-      <ProgressBar
-        pct={pct}
-        barColor={st.bar}
-        ariaLabel={`Выполнение плана: ${pctLabel}`}
-      />
-
-      <Label size={12} mono bold color={st.label}>
-        {pctLabel}
-      </Label>
+      {onCreate ? (
+        <button
+          type="button"
+          onClick={onCreate}
+          aria-label={`Создать отгрузку: ${rawName}, день ${day + 1}`}
+          title="Создать отгрузку"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            margin: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            font: 'inherit',
+            color: 'inherit',
+          }}
+        >
+          <Label size={12} mono color={st.label}>
+            факт {formatTons(factTons)} т
+          </Label>
+          <ProgressBar
+            pct={pct}
+            barColor={st.bar}
+            ariaLabel={`Выполнение плана: ${pctLabel}`}
+          />
+          <Label size={12} mono bold color={st.label}>
+            {pctLabel}
+          </Label>
+        </button>
+      ) : (
+        <>
+          <Label size={12} mono color={st.label}>
+            факт {formatTons(factTons)} т
+          </Label>
+          <ProgressBar
+            pct={pct}
+            barColor={st.bar}
+            ariaLabel={`Выполнение плана: ${pctLabel}`}
+          />
+          <Label size={12} mono bold color={st.label}>
+            {pctLabel}
+          </Label>
+        </>
+      )}
     </div>
   );
 };

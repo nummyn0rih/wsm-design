@@ -39,6 +39,7 @@ interface Props {
   tkMap: Map<string, TransportCompany>;
   supplierMap: Map<string, Supplier>;
   role: Role;
+  onEdit: (shipment: Shipment) => void;
 }
 
 export const TableView: FC<Props> = ({
@@ -50,6 +51,7 @@ export const TableView: FC<Props> = ({
   tkMap,
   supplierMap,
   role,
+  onEdit,
 }) => {
   const weeks = useMemo<WeekGroup[]>(() => {
     const byWeek = new Map<
@@ -182,6 +184,7 @@ export const TableView: FC<Props> = ({
                             tkName={tkMap.get(s.tkId)?.name ?? '—'}
                             supplierMap={supplierMap}
                             role={role}
+                            onEdit={onEdit}
                           />
                         ))}
                       </>

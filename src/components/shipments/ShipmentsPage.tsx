@@ -13,11 +13,13 @@ import {
   useTKRepo,
 } from '@/repos/RepoContext';
 import { useRepoSnapshot } from '@/repos/useRepoSnapshot';
+import { Toast } from '@/components/atoms/Toast';
 import { ViewModeToggle, type ViewMode } from './ViewModeToggle';
 import { TableFilters } from './TableView/TableFilters';
 import { TableView } from './TableView/TableView';
 import { HeatmapView } from './HeatmapView/HeatmapView';
 import { PlanView } from './PlanView/PlanView';
+import { ShipmentFormModal, type FormMode } from './ShipmentFormModal';
 
 const ALL_STATUSES: Status[] = ['scheduled', 'sent', 'arrived'];
 
@@ -49,6 +51,8 @@ export const ShipmentsPage: FC = () => {
   const [statusFilter, setStatusFilter] = useState<Set<Status>>(
     () => new Set(ALL_STATUSES),
   );
+  const [formMode, setFormMode] = useState<FormMode | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const shipments = useRepoSnapshot(useShipmentRepo());
   const drivers = useRepoSnapshot(useDriverRepo());
@@ -78,16 +82,13 @@ export const ShipmentsPage: FC = () => {
         {canCreateShipment(role) && (
           <button
             type="button"
-            disabled
-            aria-disabled="true"
-            title="Создание отгрузки — Form E (M9)"
+            onClick={() => setFormMode({ kind: 'create' })}
             style={{
               fontFamily: 'var(--font-handwriting)',
               fontSize: 14,
               fontWeight: 700,
               padding: '4px 12px',
-              cursor: 'not-allowed',
-              opacity: 0.4,
+              cursor: 'pointer',
             }}
           >
             + Новая отгрузка
@@ -107,6 +108,7 @@ export const ShipmentsPage: FC = () => {
             tkMap={tkMap}
             supplierMap={supplierMap}
             role={role}
+            onEdit={(s) => setFormMode({ kind: 'edit', shipment: s })}
           />
         </>
       )}
@@ -130,8 +132,29 @@ export const ShipmentsPage: FC = () => {
           year={year}
           role={role}
           onWeekChange={setWeekYear}
+          onCreateFromPlan={(rawId, arrDate) =>
+            setFormMode({ kind: 'createFromPlan', rawId, arrDate })
+          }
         />
       )}
+
+      {formMode && (
+        <ShipmentFormModal
+          mode={formMode}
+          role={role}
+          drivers={drivers}
+          tks={tks}
+          suppliers={suppliers}
+          raws={raws}
+          onClose={() => setFormMode(null)}
+          onSaved={(message) => {
+            setFormMode(null);
+            setToast(message);
+          }}
+        />
+      )}
+
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   );
 };
