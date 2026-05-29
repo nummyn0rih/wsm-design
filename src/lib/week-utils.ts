@@ -1,5 +1,7 @@
 // Working week = Mon–Sat. Sunday excluded from displayed range.
 
+import { currentWeekId, isoWeek } from './date';
+
 function isoWeekMonday(weekNum: number, year: number): Date {
   // First Thursday of ISO year
   const jan4 = new Date(year, 0, 4);
@@ -34,4 +36,23 @@ export function formatWeekLabel(weekNum: number, year: number): string {
   const startLabel = sameMonth ? dayOnly.format(start) : dayMonth.format(start);
   const endLabel = dayMonth.format(end);
   return `${startLabel}–${endLabel} ${year}`;
+}
+
+export function weekIdAtOffset(offset: -1 | 0 | 1): {
+  weekNum: number;
+  year: number;
+} {
+  const cur = currentWeekId();
+  const monday = weekRange(cur.weekNum, cur.year).start;
+  const target = new Date(monday);
+  target.setDate(monday.getDate() + offset * 7);
+  return isoWeek(target);
+}
+
+export function mondayAtOffset(offset: -1 | 0 | 1): Date {
+  const cur = currentWeekId();
+  const monday = weekRange(cur.weekNum, cur.year).start;
+  const target = new Date(monday);
+  target.setDate(monday.getDate() + offset * 7);
+  return target;
 }

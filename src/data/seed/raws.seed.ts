@@ -1,0 +1,128 @@
+import type { RawMaterial } from '@/types/domain';
+import type { RawRepo } from '@/repos/types';
+
+const RAWS: RawMaterial[] = [
+  {
+    id: 'raw_cucumber',
+    name: 'Огурцы',
+    unit: 'kg',
+    bg: '#d4eac2',
+    dot: '#4a8f2a',
+    sortOrder: 1,
+    allowedTara: [],
+  },
+  {
+    id: 'raw_tomato',
+    name: 'Томаты',
+    unit: 'kg',
+    bg: '#ffe0b8',
+    dot: '#c87020',
+    sortOrder: 2,
+    allowedTara: ['tara_plastic_barrel'],
+  },
+  {
+    id: 'raw_cherry',
+    name: 'Черри',
+    unit: 'kg',
+    bg: '#ffd0c0',
+    dot: '#c24a28',
+    sortOrder: 3,
+    allowedTara: ['tara_plastic_barrel'],
+  },
+  {
+    id: 'raw_patisson',
+    name: 'Патиссоны',
+    unit: 'kg',
+    bg: '#fff4a8',
+    dot: '#c49a00',
+    sortOrder: 4,
+    allowedTara: ['tara_plastic_barrel', 'tara_iron_barrel'],
+  },
+  {
+    id: 'raw_jalapeno',
+    name: 'Халапеньо',
+    unit: 'kg',
+    bg: '#c4dca8',
+    dot: '#1e5020',
+    sortOrder: 5,
+    allowedTara: ['tara_plastic_barrel'],
+  },
+  {
+    id: 'raw_pepper_hot',
+    name: 'Перец острый',
+    unit: 'kg',
+    bg: '#f0c4c0',
+    dot: '#a8201c',
+    sortOrder: 6,
+    allowedTara: [],
+  },
+  {
+    id: 'raw_pepper_sweet',
+    name: 'Перец сладкий',
+    unit: 'kg',
+    bg: '#f0d8c8',
+    dot: '#c03030',
+    sortOrder: 7,
+    allowedTara: [],
+  },
+  {
+    id: 'raw_pepper_sweet_marinated',
+    name: 'Перец сладкий маринованный',
+    unit: 'kg',
+    bg: '#e8d0c0',
+    dot: '#8a3020',
+    sortOrder: 8,
+    allowedTara: ['tara_plastic_barrel', 'tara_iron_barrel'],
+  },
+  {
+    id: 'raw_onion',
+    name: 'Лук',
+    unit: 'kg',
+    bg: '#f5e8c8',
+    dot: '#a07820',
+    sortOrder: 9,
+    allowedTara: ['tara_wooden_box'],
+  },
+  {
+    id: 'raw_carrot',
+    name: 'Морковь',
+    unit: 'kg',
+    bg: '#ffd0b0',
+    dot: '#d05820',
+    sortOrder: 10,
+    allowedTara: ['tara_wooden_box'],
+  },
+  {
+    id: 'raw_beetroot',
+    name: 'Свёкла',
+    unit: 'kg',
+    bg: '#e8c0d0',
+    dot: '#8a2050',
+    sortOrder: 11,
+    allowedTara: ['tara_wooden_box'],
+  },
+  {
+    id: 'raw_potato',
+    name: 'Картофель',
+    unit: 'kg',
+    bg: '#e8d8b8',
+    dot: '#8a6820',
+    sortOrder: 12,
+    allowedTara: ['tara_wooden_box'],
+  },
+  {
+    id: 'raw_cabbage',
+    name: 'Капуста',
+    unit: 'kg',
+    bg: '#e0ead8',
+    dot: '#5a8050',
+    sortOrder: 13,
+    allowedTara: ['tara_wooden_box'],
+  },
+];
+
+export async function seedRaws(repo: RawRepo): Promise<void> {
+  for (const r of RAWS) {
+    await repo.save(r);
+  }
+}
