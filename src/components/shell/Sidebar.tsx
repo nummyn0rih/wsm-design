@@ -1,5 +1,6 @@
 import { useMemo, useState, type FC } from 'react';
 import { useRole } from '@/context/RoleContext';
+import { ResetButton } from '@/components/dev/ResetButton';
 import { NAV, type NavChild, type NavItem } from './nav-config';
 import { SidebarItem } from './SidebarItem';
 
@@ -110,6 +111,7 @@ export const Sidebar: FC<Props> = ({ collapsed }) => {
           );
         })}
       </div>
+      <ResetButton collapsed={collapsed} />
     </nav>
   );
 };
