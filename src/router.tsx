@@ -1,6 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import { StubPage } from '@/components/shell/StubPage';
+import { ShipmentsPage } from '@/components/shipments/ShipmentsPage';
 
 export const router = createBrowserRouter([
   {
@@ -8,7 +9,7 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Navigate to="/shipments" replace /> },
-      { path: 'shipments', element: <StubPage title="Отгрузки (M6)" phase={2} /> },
+      { path: 'shipments', element: <ShipmentsPage /> },
       { path: 'logistics', element: <StubPage title="Логистика материалов" phase={2} /> },
       { path: 'contracts', element: <StubPage title="Контракты" phase={2} /> },
       { path: 'analytics', element: <StubPage title="Аналитика" phase={2} /> },

@@ -19,3 +19,22 @@ export function fmtDateRu(d: Date | string): string {
   const date = typeof d === 'string' ? parseLocalDate(d) : d;
   return dateRu.format(date);
 }
+
+const dayMon = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'short',
+});
+
+// «20 апр»
+export function fmtDayMon(d: Date | string): string {
+  const date = typeof d === 'string' ? parseLocalDate(d) : d;
+  return dayMon.format(date);
+}
+
+const weekdayShort = new Intl.DateTimeFormat('ru-RU', { weekday: 'short' });
+
+// «ПН» (Intl gives «пн» — uppercased for the day-header bar)
+export function fmtWeekdayShort(d: Date | string): string {
+  const date = typeof d === 'string' ? parseLocalDate(d) : d;
+  return weekdayShort.format(date).toUpperCase();
+}
