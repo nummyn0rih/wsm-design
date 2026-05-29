@@ -6,18 +6,18 @@ import { useRole } from '@/context/RoleContext';
 import { canCreateShipment } from '@/services/permissions';
 import {
   useDriverRepo,
+  usePlanRepo,
   useRawRepo,
   useShipmentRepo,
   useSupplierRepo,
   useTKRepo,
 } from '@/repos/RepoContext';
 import { useRepoSnapshot } from '@/repos/useRepoSnapshot';
-import { Box } from '@/components/atoms/Box';
-import { Label } from '@/components/atoms/Label';
 import { ViewModeToggle, type ViewMode } from './ViewModeToggle';
 import { TableFilters } from './TableView/TableFilters';
 import { TableView } from './TableView/TableView';
 import { HeatmapView } from './HeatmapView/HeatmapView';
+import { PlanView } from './PlanView/PlanView';
 
 const ALL_STATUSES: Status[] = ['scheduled', 'sent', 'arrived'];
 
@@ -55,6 +55,7 @@ export const ShipmentsPage: FC = () => {
   const tks = useRepoSnapshot(useTKRepo());
   const suppliers = useRepoSnapshot(useSupplierRepo());
   const raws = useRepoSnapshot(useRawRepo());
+  const plans = useRepoSnapshot(usePlanRepo());
 
   const driverMap = useMemo(
     () => new Map<string, Driver>(drivers.map((d) => [d.id, d])),
@@ -121,13 +122,15 @@ export const ShipmentsPage: FC = () => {
       )}
 
       {view === 'plan' && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-          <Box style={{ padding: 24 }}>
-            <Label size={16} color="var(--ink-muted)">
-              План — раздел в работе (M8)
-            </Label>
-          </Box>
-        </div>
+        <PlanView
+          shipments={shipments}
+          raws={raws}
+          plans={plans}
+          weekNum={weekNum}
+          year={year}
+          role={role}
+          onWeekChange={setWeekYear}
+        />
       )}
     </div>
   );
