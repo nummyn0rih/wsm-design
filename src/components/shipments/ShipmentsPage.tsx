@@ -6,6 +6,7 @@ import { useRole } from '@/context/RoleContext';
 import { canCreateShipment } from '@/services/permissions';
 import {
   useDriverRepo,
+  useRawRepo,
   useShipmentRepo,
   useSupplierRepo,
   useTKRepo,
@@ -16,17 +17,13 @@ import { Label } from '@/components/atoms/Label';
 import { ViewModeToggle, type ViewMode } from './ViewModeToggle';
 import { TableFilters } from './TableView/TableFilters';
 import { TableView } from './TableView/TableView';
+import { HeatmapView } from './HeatmapView/HeatmapView';
 
 const ALL_STATUSES: Status[] = ['scheduled', 'sent', 'arrived'];
 
 function parseView(v: string | null): ViewMode {
   return v === 'heatmap' || v === 'plan' ? v : 'table';
 }
-
-const PLACEHOLDER_LABEL: Record<Exclude<ViewMode, 'table'>, string> = {
-  heatmap: 'Heatmap — раздел в работе (M7)',
-  plan: 'План — раздел в работе (M8)',
-};
 
 export const ShipmentsPage: FC = () => {
   const { role } = useRole();
@@ -43,6 +40,12 @@ export const ShipmentsPage: FC = () => {
       { replace: true },
     );
 
+  const setWeekYear = (nextWeek: number, nextYear: number) =>
+    setParams(
+      { view, week: String(nextWeek), year: String(nextYear) },
+      { replace: true },
+    );
+
   const [statusFilter, setStatusFilter] = useState<Set<Status>>(
     () => new Set(ALL_STATUSES),
   );
@@ -51,6 +54,7 @@ export const ShipmentsPage: FC = () => {
   const drivers = useRepoSnapshot(useDriverRepo());
   const tks = useRepoSnapshot(useTKRepo());
   const suppliers = useRepoSnapshot(useSupplierRepo());
+  const raws = useRepoSnapshot(useRawRepo());
 
   const driverMap = useMemo(
     () => new Map<string, Driver>(drivers.map((d) => [d.id, d])),
@@ -90,7 +94,7 @@ export const ShipmentsPage: FC = () => {
         )}
       </div>
 
-      {view === 'table' ? (
+      {view === 'table' && (
         <>
           <TableFilters value={statusFilter} onChange={setStatusFilter} />
           <TableView
@@ -104,17 +108,23 @@ export const ShipmentsPage: FC = () => {
             role={role}
           />
         </>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            padding: 32,
-          }}
-        >
+      )}
+
+      {view === 'heatmap' && (
+        <HeatmapView
+          shipments={shipments}
+          raws={raws}
+          weekNum={weekNum}
+          year={year}
+          onWeekChange={setWeekYear}
+        />
+      )}
+
+      {view === 'plan' && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
           <Box style={{ padding: 24 }}>
             <Label size={16} color="var(--ink-muted)">
-              {PLACEHOLDER_LABEL[view]}
+              План — раздел в работе (M8)
             </Label>
           </Box>
         </div>

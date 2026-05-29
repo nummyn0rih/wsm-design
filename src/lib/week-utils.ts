@@ -56,3 +56,17 @@ export function mondayAtOffset(offset: -1 | 0 | 1): Date {
   target.setDate(monday.getDate() + offset * 7);
   return target;
 }
+
+// Week `delta` weeks away from an arbitrary (weekNum, year). Built on weekRange +
+// isoWeek so ISO year-cross (W1/W53) is handled by the existing helpers, not by
+// hand-rolled calendar math.
+export function weekAtDelta(
+  weekNum: number,
+  year: number,
+  delta: number,
+): { weekNum: number; year: number } {
+  const monday = weekRange(weekNum, year).start;
+  const target = new Date(monday);
+  target.setDate(monday.getDate() + delta * 7);
+  return isoWeek(target);
+}
