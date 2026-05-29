@@ -2,6 +2,7 @@ import { Navigate, createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import { StubPage } from '@/components/shell/StubPage';
 import { ShipmentsPage } from '@/components/shipments/ShipmentsPage';
+import { DriversRef } from '@/components/references/DriversRef';
 
 export const router = createBrowserRouter([
   {
@@ -17,7 +18,7 @@ export const router = createBrowserRouter([
       { path: 'references/raws', element: <StubPage title="Сырьё" phase={2} /> },
       { path: 'references/suppliers', element: <StubPage title="Поставщики" phase={2} /> },
       { path: 'references/tks', element: <StubPage title="ТК" phase={2} /> },
-      { path: 'references/drivers', element: <StubPage title="Водители (M10)" phase={2} /> },
+      { path: 'references/drivers', element: <DriversRef /> },
       { path: 'references/tara-types', element: <StubPage title="Виды тары" phase={2} /> },
       { path: 'references/ingredients', element: <StubPage title="Ингредиенты" phase={2} /> },
       { path: 'references/seasons', element: <StubPage title="Сезоны" phase={2} /> },

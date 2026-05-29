@@ -77,7 +77,6 @@ export const NAV: NavItem[] = [
         label: 'Водители',
         path: '/references/drivers',
         visibleTo: ALL,
-        phase: 2,
       },
       {
         id: 'ref-tara',

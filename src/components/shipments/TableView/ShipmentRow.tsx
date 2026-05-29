@@ -47,6 +47,7 @@ interface Props {
   supplierMap: Map<string, Supplier>;
   role: Role;
   onEdit: (shipment: Shipment) => void;
+  onDriverClick: (driverId: string) => void;
 }
 
 export const ShipmentRow: FC<Props> = ({
@@ -56,6 +57,7 @@ export const ShipmentRow: FC<Props> = ({
   supplierMap,
   role,
   onEdit,
+  onDriverClick,
 }) => {
   const repo = useShipmentRepo();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -88,8 +90,25 @@ export const ShipmentRow: FC<Props> = ({
         <Label size={13} mono>
           {fmtDayMon(s.arrDate)}
         </Label>
-        {/* ФИО — plain text in M6; DriverModal click wired in M10. */}
-        <Label size={14}>{driverName}</Label>
+        {/* ФИО — opens DriverModal (M10). Not the row edit action. */}
+        <button
+          type="button"
+          onClick={() => onDriverClick(s.driverId)}
+          title="Карточка водителя"
+          style={{
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            fontFamily: 'var(--font-handwriting)',
+            fontSize: 14,
+            color: 'var(--link, #1a4868)',
+            textDecoration: 'underline',
+          }}
+        >
+          {driverName}
+        </button>
         <Label size={14} color="var(--ink-muted)">
           {tkName}
         </Label>

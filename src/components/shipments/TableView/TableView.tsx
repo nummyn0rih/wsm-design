@@ -40,6 +40,7 @@ interface Props {
   supplierMap: Map<string, Supplier>;
   role: Role;
   onEdit: (shipment: Shipment) => void;
+  onDriverClick: (driverId: string) => void;
 }
 
 export const TableView: FC<Props> = ({
@@ -52,6 +53,7 @@ export const TableView: FC<Props> = ({
   supplierMap,
   role,
   onEdit,
+  onDriverClick,
 }) => {
   const weeks = useMemo<WeekGroup[]>(() => {
     const byWeek = new Map<
@@ -185,6 +187,7 @@ export const TableView: FC<Props> = ({
                             supplierMap={supplierMap}
                             role={role}
                             onEdit={onEdit}
+                            onDriverClick={onDriverClick}
                           />
                         ))}
                       </>

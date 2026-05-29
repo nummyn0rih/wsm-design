@@ -20,6 +20,7 @@ import { TableView } from './TableView/TableView';
 import { HeatmapView } from './HeatmapView/HeatmapView';
 import { PlanView } from './PlanView/PlanView';
 import { ShipmentFormModal, type FormMode } from './ShipmentFormModal';
+import { DriverModal } from './DriverModal/DriverModal';
 
 const ALL_STATUSES: Status[] = ['scheduled', 'sent', 'arrived'];
 
@@ -52,6 +53,7 @@ export const ShipmentsPage: FC = () => {
     () => new Set(ALL_STATUSES),
   );
   const [formMode, setFormMode] = useState<FormMode | null>(null);
+  const [driverModalId, setDriverModalId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const shipments = useRepoSnapshot(useShipmentRepo());
@@ -109,6 +111,7 @@ export const ShipmentsPage: FC = () => {
             supplierMap={supplierMap}
             role={role}
             onEdit={(s) => setFormMode({ kind: 'edit', shipment: s })}
+            onDriverClick={(driverId) => setDriverModalId(driverId)}
           />
         </>
       )}
@@ -151,6 +154,13 @@ export const ShipmentsPage: FC = () => {
             setFormMode(null);
             setToast(message);
           }}
+        />
+      )}
+
+      {driverModalId && (
+        <DriverModal
+          driverId={driverModalId}
+          onClose={() => setDriverModalId(null)}
         />
       )}
 
